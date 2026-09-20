@@ -1,401 +1,338 @@
-﻿# MuVora: Multilingual Cinema Review Intelligence & Translation Platform
+# MuVora
 
-<div align="center">
+MuVora is a React and FastAPI application for multilingual movie-review analysis and translation.
 
-![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.15+-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
-![React 18](https://img.shields.io/badge/React-18.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.2-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-5.1-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Vercel Ready](https://img.shields.io/badge/Vercel-SPA_Ready-000000?style=for-the-badge&logo=vercel&logoColor=white)
+It detects writing scripts and transliterated Indic-language input, evaluates review sentiment and quality, extracts cinema-related aspects, and provides translation workflows. The repository includes a trained BiLSTM model, a rule-based fallback predictor, browser speech input/output, and automated backend tests.
 
-**An intelligent, production-quality multilingual cinema review intelligence platform featuring Bidirectional LSTM neural classification, dynamic cinema aspect sentiment analysis, and Google-Translate-style multilingual translation with voice input and audio pronunciation.**
+Live demo: not currently configured.
 
-</div>
+## Contents
 
----
-
-## 📑 Table of Contents
-
-- [Overview](#overview)
-- [Why MuVora](#why-muvora)
-- [Key Features](#key-features)
-- [System Architecture](#system-architecture)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [1. Backend Setup](#1-backend-setup)
-  - [2. Model Training](#2-model-training)
-  - [3. Frontend Setup](#3-frontend-setup)
-- [Configuration & Environment Variables](#configuration--environment-variables)
-- [Usage Workflows](#usage-workflows)
-- [API Reference](#api-reference)
-- [Vercel Deployment Guide](#vercel-deployment-guide)
-- [Testing & Quality Assurance](#testing--quality-assurance)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Repository Structure](#repository-structure)
+- [Technology](#technology)
+- [Local Setup](#local-setup)
+- [Configuration](#configuration)
+- [API](#api)
+- [Render Deployment](#render-deployment)
+- [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
-- [Known Limitations](#known-limitations)
+- [Limitations](#limitations)
 - [Contributing](#contributing)
 - [License](#license)
-- [Acknowledgements](#acknowledgements)
 
----
+## Features
 
-## Overview
+### Review analysis
 
-Modern film audiences express opinions across native scripts (Telugu, Hindi, Tamil) and Romanized transliterations (e.g., *“cinema chala bagundhi”*, *“movie bahut accha hai”*). Conventional sentiment demos typically exhibit two core weaknesses:
-1. **Categorical Word ID Feeding (~50% Accuracy)**: Passing raw integer word indices directly into dense layers without learned embeddings treats arbitrary token IDs as numerical features, resulting in unstable predictions.
-2. **Monolingual Limitation**: Models trained on English benchmarks fail on Indic languages or code-mixed Romanized reviews without script and language representation separation.
+- Positive, negative, or uncertain sentiment classification.
+- Positive and negative probabilities with confidence values.
+- Review-quality checks for empty, repetitive, random, and out-of-domain input.
+- Aspect analysis for acting, story, direction, screenplay, music, visuals, and overall experience.
+- Evidence phrases and narrative synthesis in the API response.
+- Native-script detection for Telugu, Hindi, Tamil, Kannada, Malayalam, Bengali, Marathi, Gujarati, Punjabi, Urdu, and Odia.
+- Romanized Telugu and Hindi pattern detection.
+- Code-mixed language and script detection.
 
-**MuVora** solves both challenges by combining:
-- A **Bidirectional LSTM neural network** with a learned dense Embedding layer ({,}000 \to 128$) trained on the Stanford IMDB benchmark (achieving **86.5% accuracy**).
-- A **multi-stage Unicode script and transliteration detection engine** that separates physical writing script from semantic language.
-- A **resilient multi-provider translation pipeline** (Google GTX + MyMemory lawful public fallback + clean offline dictionary fallback) that eliminates mock prefix tags.
-- A **meaning-based cinema intelligence engine** providing evidence-backed aspect-level sentiment (Acting, Story, Direction, Screenplay, Music, Visuals, Overall Experience) and multi-part narrative synthesis.
+### Translation
 
----
+- Automatic source-language detection or an explicit source-language hint.
+- Multiple target languages in one request.
+- Google GTX, MyMemory, `deep-translator`, and local dictionary fallback providers.
+- Romanized Telugu and Hindi normalization for recognized phrases.
 
-## Why MuVora
+### Frontend experience
 
-| Traditional Sentiment Demos | MuVora Intelligence Platform |
-| :--- | :--- |
-| Feeds raw word IDs into linear layers (~50% accuracy) | Learned Dense Embedding ({,}000 \to 128$) + BiLSTM (86.5% accuracy) |
-| Fails on Romanized Telugu/Hindi | Multi-stage script, transliteration & code-mixing detector |
-| Forces arbitrary binary label on keyboard smash (sdfghjk) | Shannon entropy & consonant cluster Input Quality Guard |
-| Binary positive/negative output only | Aspect-based sentiment with direct quoted evidence |
-| Monolingual English only | 17 supported languages with voice input & TTS pronunciation |
-| Crashes on translation rate limits | Multi-provider cascade (Google GTX + MyMemory + offline) |
+- React single-page interface with analyzer, translator, history, insights, and about views.
+- Browser local storage for analysis history.
+- Optional Web Speech API dictation and text-to-speech pronunciation.
+- Responsive UI with a frontend error boundary.
 
----
+## Architecture
 
-## Key Features
+```mermaid
+flowchart LR
+    Browser[React Vite SPA] -->|/api requests| API[FastAPI application]
+    API --> Detect[Language and script detection]
+    API --> Quality[Input quality analysis]
+    API --> Sentiment[BiLSTM or fallback predictor]
+    API --> Aspects[Cinema aspect analysis]
+    API --> Translation[Translation provider cascade]
+    Translation --> Google[Google GTX]
+    Translation --> Memory[MyMemory]
+    Translation --> Local[Local dictionary fallback]
+    Sentiment --> Model[models/sentiment_bilstm.keras]
+```
 
-### 1. Cinema Review Intelligence & Aspect Analysis
-- **BiLSTM Neural Classifier**: Deep recurrent architecture capturing long-range syntactic dependencies and negation handling (*\"not good\"*, *\"never boring\"*).
-- **Dynamic Aspect Extraction**: Identifies sentiments and extracts direct quotes across:
-  - Acting & Cast Performance
-  - Story & Plot Narrative
-  - Direction & Filmmaking Craft
-  - Screenplay & Pacing
-  - Music & Soundtrack (BGM)
-  - Visuals & Cinematography
-  - Overall Cinematic Experience
-- **Multi-Part Narrative Synthesis**:
-  - **Executive Summary**: Localized summary in the user's selected display language.
-  - **Evidence-Backed Narrative**: Attributing specific expressive phrases and neural probabilities.
-  - **Reviewer Tone & Nuance**: Tone intensity detection (*Enthusiastic*, *Critical*, *Balanced*).
-  - **Theatrical Recommendation Badge**: Visual guidance (*Highly Recommended*, *Skip*, *Mixed Appeal*).
-- **Input Quality Guard**: Shannon entropy and consonant cluster filters reject random strings and gibberish with status: insufficient_input.
+The frontend is a static Vite build. The backend is a long-running FastAPI service. For Render, deploy them as separate services: a Static Site for the frontend and a Docker Web Service for the backend. The checked-in `render.yaml` describes both services.
 
-### 2. Google-Translate-Style Translation Workspace
-- **Zero Mock Prefixes**: Clean, pure translations without debug labels or dummy tags.
-- **Voice Dictation (Speech-to-Text)**: Browser Web Speech API mic button for hands-free review input in English, Telugu, Hindi, and Tamil.
-- **Audio Pronunciation (Text-to-Speech)**: Audio listen button for original text and translated output.
-- **Multi-Target Translations**: Simultaneous translation into multiple target languages with one-click copy.
-- **One-Click Export**: Download translations as .txt files.
-- **Interactive Language Swapping & Live Character Counters**.
+The backend does not use a database or authentication system. Browser history is stored locally in the user's browser. Translation providers are external network dependencies and may be rate-limited.
 
----
+## Repository Structure
 
-## System Architecture
+| Path | Purpose |
+| --- | --- |
+| `backend/app/api` | FastAPI route handlers |
+| `backend/app/core` | Configuration and logging |
+| `backend/app/schemas` | Pydantic request and response models |
+| `backend/app/services` | Sentiment, quality, language, aspect, and translation services |
+| `backend/ml` | Model prediction, preprocessing, metrics, and training code |
+| `backend/tests` | Backend API and service tests |
+| `frontend/src/components` | React views and reusable UI components |
+| `frontend/src/hooks` | React hooks, including browser history management |
+| `frontend/src/services` | Frontend API client |
+| `frontend/src/types` | Shared TypeScript response and request types |
+| `models` | Model weights, vocabulary, metadata, and sample history data |
+| `.github/workflows` | GitHub Actions CI configuration |
+| `render.yaml` | Render Blueprint for frontend and backend services |
+| `docker-compose.yml` | Local Docker orchestration |
 
-`mermaid
-flowchart TD
-    User([User / Browser]) <--> FE[React 18 + Vite SPA]
-    FE <--> API[FastAPI Gateway /api]
-    
-    subgraph Backend_Services [Inference & NLP Pipeline]
-        API --> QD[Input Quality Guard]
-        API --> LD[Multi-Stage Script & Transliteration Detector]
-        API --> TS[Multi-Provider Translation Cascade]
-        API --> AA[Aspect Sentiment Engine]
-        API --> BiLSTM[BiLSTM Neural Classifier]
-    end
+## Technology
 
-    TS --> GTX[Direct Google GTX API]
-    TS --> MM[MyMemory Public API]
-    TS --> Dict[Clean Offline Dictionary]
-`
+| Layer | Technology | Evidence in repository |
+| --- | --- | --- |
+| Frontend | React 18, TypeScript, Vite | `frontend/package.json` |
+| Styling | TailwindCSS, Framer Motion, Lucide React | `frontend/package.json` and `frontend/src` |
+| Backend | FastAPI, Uvicorn, Pydantic | `backend/requirements.txt` and `backend/app` |
+| ML | TensorFlow/Keras, NumPy, scikit-learn | `backend/requirements.txt` and `backend/ml` |
+| Language detection | `langdetect` plus custom Unicode and transliteration logic | `backend/app/services` |
+| Translation | `deep-translator` plus direct HTTP providers and local fallback | `backend/app/services/translation_service.py` |
+| Deployment | Docker, Render Blueprint, optional Vercel frontend config | `backend/Dockerfile`, `render.yaml`, `vercel.json` |
 
----
+The model metadata records an evaluation accuracy of `0.865`, precision of `0.8977`, recall of `0.8238`, F1 of `0.8592`, and ROC AUC of `0.944`. These are recorded model evaluation metrics, not a guarantee for every language, domain, or review.
 
-## Tech Stack
-
-| Layer | Technology | Purpose |
-| :--- | :--- | :--- |
-| **Frontend** | React 18.2, TypeScript 5.2, Vite 5.1 | Responsive SPA user interface |
-| **Styling** | TailwindCSS 3.4, Lucide React, Framer Motion | Glassmorphism UI & animated widgets |
-| **Backend** | FastAPI 0.110+, Uvicorn ASGI, Pydantic v2 | High-performance asynchronous API gateway |
-| **Machine Learning** | TensorFlow 2.15+, Keras 3.0, NumPy, Scikit-learn | BiLSTM neural classifier & preprocessing |
-| **Multilingual NLP** | Custom Script Detector, Regex phonetic normalizer | Unicode script, transliteration & code-mixing |
-| **Translation** | Google GTX, MyMemory, deep-translator | High-resilience multilingual translation cascade |
-| **Deployment** | Vercel (Frontend SPA) + Docker / Uvicorn (Backend) | Production hosting & cloud execution |
-| **Testing** | PyTest (31 tests), TypeScript compiler (	sc) | Automated verification & type safety |
-
----
-
-## Getting Started
+## Local Setup
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher (v20+ recommended)
-- **Python**: 3.11 (via Conda or virtualenv)
-- **Git**: 2.30+
 
----
+- Git
+- Node.js 18 or newer
+- Python 3.11
+- Optional: Docker Desktop
 
-### 1. Backend Setup
+Python dependencies are listed in [backend/requirements.txt](backend/requirements.txt). Frontend dependencies are locked in [frontend/package-lock.json](frontend/package-lock.json).
 
-`ash
-# Navigate to project root
-cd MuVora
+### Backend
 
-# Create and activate Python 3.11 environment
-conda create -n muvora python=3.11 -y
-conda activate muvora
+From the repository root, create or activate a Python 3.11 environment and install dependencies:
 
-# Install backend dependencies
-pip install -r backend/requirements.txt
-`
+```powershell
+D:\anaconda\envs\muvora\python.exe -m pip install -r backend\requirements.txt
+```
 
----
+Use the Python executable for your environment if it is different. Start the API:
 
-### 2. Model Training
+```powershell
+D:\anaconda\envs\muvora\Scripts\uvicorn.exe backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
 
-The repository includes pre-trained weights (models/sentiment_bilstm.keras @ 16.7MB) and vocabulary (models/vocab.json). To retrain or inspect training:
+The API is available at [http://127.0.0.1:8000](http://127.0.0.1:8000). Interactive documentation is at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-`ash
-# Train BiLSTM classifier on 50,000 IMDB samples
-python backend/ml/train.py --epochs 3 --batch-size 64
-`
+### Frontend
 
-To start the FastAPI backend:
-`ash
-uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
-`
-API Documentation will be live at: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+In a second terminal:
 
----
-
-### 3. Frontend Setup
-
-`ash
-# Navigate to frontend directory
+```powershell
 cd frontend
-
-# Install dependencies
-npm install
-
-# Start Vite development server
+npm ci
 npm run dev
-`
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+```
 
----
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). With no `VITE_API_BASE_URL`, Vite proxies `/api` requests to the local backend at port 8000.
 
-## Configuration & Environment Variables
+### Docker Compose
 
-### Backend Configuration (.env)
+Docker Compose is configured to build the backend from the repository root so the `backend` Python package and `models` directory are available in the image:
 
-Copy .env.example to .env in the project root:
+```powershell
+docker compose up --build
+```
 
-| Variable | Required | Default | Description |
-| :--- | :---: | :--- | :--- |
-| PROJECT_NAME | No | MuVora | Name of the platform |
-| DEBUG | No | False | Enable debug logging |
-| CORS_ORIGINS | No | [\"http://localhost:5173\"] | Allowed origins for CORS requests |
-| MODEL_PATH | No | models/sentiment_bilstm.keras | Path to trained BiLSTM model weights |
-| VOCAB_PATH | No | models/vocab.json | Path to serialized vocabulary map |
-| TRANSLATION_TIMEOUT_SECONDS | No | 8 | Timeout for external translation requests |
-| MOCK_TRANSLATION | No | False | If True, forces offline dictionary provider |
+The Docker frontend is served at [http://127.0.0.1:3000](http://127.0.0.1:3000), and the backend is served at [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-### Frontend Configuration (rontend/.env)
+## Configuration
 
-Copy rontend/.env.example to rontend/.env:
+Copy the examples as appropriate for local work. Do not commit `.env` files or secret values.
 
-| Variable | Required | Scope | Description |
-| :--- | :---: | :--- | :--- |
-| VITE_API_BASE_URL | Optional | Client | Base URL for deployed FastAPI backend (leave blank for local Vite proxy /api) |
+### Backend variables
 
----
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `PROJECT_NAME` | No | API display name; defaults to `MuVora` |
+| `DEBUG` | No | Debug setting; defaults to `False` |
+| `CORS_ORIGINS` | No | Allowed frontend origins |
+| `MODEL_PATH` | No | Keras model path |
+| `VOCAB_PATH` | No | Vocabulary JSON path |
+| `METADATA_PATH` | No | Model metadata path |
+| `VOCAB_SIZE` | No | Predictor vocabulary size |
+| `MAX_SEQUENCE_LENGTH` | No | Predictor sequence length |
+| `EMBEDDING_DIM` | No | Model embedding dimension |
+| `MAX_REVIEW_LENGTH` | No | Maximum review length |
+| `MAX_BATCH_SIZE` | No | Maximum batch request size |
+| `TRANSLATION_TIMEOUT_SECONDS` | No | External translation timeout |
+| `MOCK_TRANSLATION` | No | Use the local dictionary provider when `True` |
 
-## Usage Workflows
+The repository's root [.env.example](.env.example) contains backend defaults. The frontend [frontend/.env.example](frontend/.env.example) contains the browser-safe `VITE_API_BASE_URL` variable.
 
-### 1. Analyzing a Review
-1. Open the **Film Sentiment Analysis** tab.
-2. Enter a movie title (optional) and paste review text in English, Telugu, Hindi, or Romanized script.
-3. Select an optional language hint and preferred analysis display language.
-4. Click **Analyze Review**.
-5. View neural confidence, calibrated probability distribution, multi-part narrative synthesis, and aspect-based sentiment cards with direct quotes.
+### Frontend variable
 
-### 2. Translating Reviews & Dialogue
-1. Open the **Real-time Translator** tab.
-2. Select source language (or **Auto Detect**).
-3. Select one or more target languages (English, Telugu, Hindi, Tamil, Spanish, etc.).
-4. Type or use the **Mic (Voice Input)** button to speak your review.
-5. Click **Translate Review**.
-6. Use the **Speaker (TTS)** button to hear the translation or click **Export Translation** to download.
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | No | Backend origin or API URL. If an origin is supplied, `/api` is appended automatically. |
 
----
+Never put backend secrets in `VITE_*` variables because Vite embeds them into the browser bundle.
 
-## API Reference
+## API
 
-### POST /api/analyze
-Analyzes review quality, language, sentiment, narrative synthesis, and aspect ratings.
+All application routes are under `/api`.
 
-**Request:**
-`json
-{
-  \"movie_title\": \"Interstellar\",
-  \"review\": \"I loved this movie. The acting was excellent, the story was emotional, and the ending was unforgettable.\",
-  \"analysis_language\": \"en\"
-}
-`
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Backend and model health |
+| `GET` | `/api/model-info` | Model metadata and supported languages |
+| `GET` | `/api/supported-languages` | Translation language registry |
+| `POST` | `/api/analyze` | Analyze one movie review |
+| `POST` | `/api/analyze/batch` | Analyze up to 20 reviews |
+| `POST` | `/api/detect-language` | Detect language, script, transliteration, and code mixing |
+| `POST` | `/api/translate` | Translate into one or more target languages |
+| `POST` | `/api/feedback` | Submit analysis feedback |
 
-**Response:**
-`json
-{
-  \"status\": \"success\",
-  \"sentiment\": \"positive\",
-  \"confidence\": 0.98,
-  \"positive_probability\": 0.99,
-  \"negative_probability\": 0.01,
-  \"summary\": \"The review expresses an overwhelmingly positive sentiment with enthusiastic appreciation for the movie.\",
-  \"analysis\": {
-    \"overall_tone\": \"positive\",
-    \"strength\": \"strong\",
-    \"synthesis\": {
-      \"executive_summary\": \"The review expresses an overwhelmingly positive sentiment...\",
-      \"detailed_narrative\": \"The evaluation of 'Interstellar' reveals a positive perspective...\",
-      \"reviewer_tone\": \"Enthusiastic and admiring (strong intensity).\",
-      \"recommendation\": \"Highly Recommended for theatrical viewing.\"
-    }
-  },
-  \"aspects\": [
-    {
-      \"aspect\": \"acting\",
-      \"aspect_label\": \"Acting & Cast Performance\",
-      \"sentiment\": \"positive\",
-      \"confidence\": 0.85,
-      \"evidence\": \"The acting was excellent\"
-    }
-  ]
-}
-`
+### Analyze a review
 
-### POST /api/translate
-Translates text into multiple target languages simultaneously.
+```bash
+curl -X POST http://127.0.0.1:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "movie_title": "Interstellar",
+    "review": "I loved this movie. The acting was excellent and the story was emotional.",
+    "language_hint": "auto",
+    "include_translation": true,
+    "analysis_language": "en",
+    "analysis_depth": "detailed"
+  }'
+```
 
-**Request:**
-`json
-{
-  \"text\": \"The movie is awesome\",
-  \"source_language\": \"en\",
-  \"target_languages\": [\"te\", \"hi\"]
-}
-`
+The response includes the request ID, detected language, quality status, sentiment, probabilities, confidence, model backend, language details, aspects, key phrases, and narrative synthesis.
 
-**Response:**
-`json
-{
-  \"original_text\": \"The movie is awesome\",
-  \"detected_source\": \"en\",
-  \"translations\": {
-    \"te\": \"సినిమా అద్భుతంగా ఉంది\",
-    \"hi\": \"फिल्म कमाल की है\"
-  }
-}
-`
+### Translate text
 
-### GET /api/health
-Checks backend and neural model status.
+```bash
+curl -X POST http://127.0.0.1:8000/api/translate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "The movie is awesome",
+    "source_language": "en",
+    "target_languages": ["te", "hi"]
+  }'
+```
 
----
+Validation errors are returned by FastAPI as HTTP 422 responses. Empty translation text returns HTTP 400. Unexpected analysis errors return a safe HTTP 500 response and are logged server-side.
 
-## Vercel Deployment Guide
+## Render Deployment
 
-The frontend is fully configured for zero-configuration Vercel deployment:
+The checked-in [render.yaml](render.yaml) defines two services:
 
-### Deploying the Frontend on Vercel:
-1. Push the repository to GitHub: SatishReddy2804/MuVora.
-2. Open your [Vercel Dashboard](https://vercel.com) and click **Add New Project**.
-3. Import the SatishReddy2804/MuVora repository.
-4. In Project Settings:
-   - **Framework Preset**: Vite
-   - **Root Directory**: rontend
-   - **Build Command**: 
-pm run build
-   - **Output Directory**: dist
-   - **Install Command**: 
-pm install
-5. In **Environment Variables**, add:
-   - VITE_API_BASE_URL: The URL of your deployed FastAPI backend (e.g. on Railway, Render, or cloud server).
-6. Click **Deploy**. The included rontend/vercel.json ensures direct URL routing without 404 errors.
+| Service | Render type | Configuration |
+| --- | --- | --- |
+| `muvora-api` | Docker Web Service | Dockerfile: `backend/Dockerfile`, context: repository root, health check: `/api/health` |
+| `muvora-frontend` | Static Site | Root: `frontend`, build: `npm ci && npm run build`, publish directory: `dist` |
 
----
+### Deploy with a Blueprint
 
-## Testing & Quality Assurance
+1. Push this branch to the target GitHub repository.
+2. In Render, select **New**, then **Blueprint**.
+3. Connect `SatishReddy2804/MuVora-Multilingual-Film-Sentiment-Intelligence-`.
+4. Select the branch containing `render.yaml`.
+5. Review the two services and create the Blueprint.
+6. Wait for the backend health check to pass.
+7. Confirm the static site build receives `VITE_API_BASE_URL` from the backend service.
 
-### Automated Backend Tests (PyTest)
-`ash
-python -m pytest backend/tests -v
-`
-**Results: 31 passed in 45.9s**:
-- Health & Model Info APIs
-- Neural Inference (Positive, Negative, Mixed)
-- Keyboard smash and character repetition rejection
-- Native Telugu, Native Hindi, Romanized Telugu, Romanized Hindi
-- Code-mixed Telugu-English and Hindi-English
-- Aspect evidence extraction and quote attribution
-- Multi-target translation pipeline
+The backend Docker command listens on Render's `PORT` environment variable and falls back to port 8000 locally. The frontend API client accepts either a complete API URL or a backend host and normalizes the `/api` path.
 
-### Frontend Production Verification
-`ash
+### Render environment variables
+
+The Blueprint supplies non-secret backend paths and defaults. Review these values in the Render dashboard, especially:
+
+- `MODEL_PATH=/app/models/sentiment_bilstm.keras`
+- `VOCAB_PATH=/app/models/vocab.json`
+- `METADATA_PATH=/app/models/metadata.json`
+- `CORS_ORIGINS`
+- `VITE_API_BASE_URL` on the static site
+
+No provider secret is required by the current translation implementation. External translation services can still impose quotas and network restrictions. Render deployment itself has not been executed from this workspace.
+
+### Deployment checks
+
+- Open the frontend URL.
+- Confirm `/api/health` returns `status: "ok"` on the backend URL.
+- Submit an English review.
+- Test Telugu, Hindi, Romanized, and code-mixed input.
+- Test translation provider fallback behavior.
+- Refresh the frontend at a client-side route if one is added later.
+- Review Render logs for model loading and translation failures.
+
+## Testing
+
+Run the available checks from the repository root:
+
+```powershell
 cd frontend
 npm run typecheck
 npm run build
-`
-**Results: 0 errors, compiled in 6.59s**.
+cd ..
+D:\anaconda\envs\muvora\python.exe -m pytest backend/tests -v
+```
 
----
+The backend suite contains 31 tests covering health and model information, positive and negative analysis, quality checks, native Telugu and Hindi, Romanized input, code mixing, language detection, translation, aspect evidence, preprocessing, and metrics.
+
+There is currently no frontend lint script, no browser automation suite, and no automated Render smoke test.
 
 ## Troubleshooting
 
-- **CORS Error in Production**: Ensure your frontend Vercel URL (e.g., https://mu-vora.vercel.app) is added to CORS_ORIGINS in the backend environment.
-- **Translation Provider Quota / 429**: MuVora automatically cascades from Google GTX to MyMemory public API and clean offline dictionary fallback.
-- **TensorFlow GPU Warning on Windows**: TensorFlow 2.15 on Windows runs in optimized CPU mode by default; this is expected and does not affect accuracy or inference.
+### Frontend shows API errors
 
----
+Start the backend on port 8000, or set `VITE_API_BASE_URL` to the deployed backend origin before building the frontend.
 
-## Known Limitations
+### Backend does not start
 
-- **Probabilistic Domain**: Predictions represent statistical neural inferences and should not replace human judgment.
-- **Dialectal Nuance**: Sarcasm or highly localized regional slang may not always be reflected in standardized translations.
-- **Microphone Support**: Web Speech API voice input requires a supported browser (Google Chrome, Microsoft Edge, Safari) and microphone permissions.
+Confirm Python 3.11 and the dependencies in `backend/requirements.txt` are installed. TensorFlow model loading can take time and requires additional memory. If the trained model cannot load, the predictor activates its development fallback and reports that backend in model metadata.
 
----
+### Translation fails
+
+External providers may be rate-limited or unavailable. The service attempts multiple providers and then uses the local dictionary fallback. The fallback is intentionally limited and does not provide general machine translation.
+
+### Microphone or audio controls do not work
+
+The browser must support the Web Speech API, and microphone access must be granted. Text analysis and translation do not require microphone access.
+
+## Limitations
+
+- Model evaluation metrics come from the stored metadata and do not establish accuracy for every language or movie-review domain.
+- Translation quality depends on external providers and the limited local dictionary fallback.
+- Romanized-language normalization recognizes configured patterns rather than all possible spellings.
+- Sarcasm, slang, mixed opinions, and culturally specific language may be misclassified.
+- Browser speech features depend on browser support and permissions.
+- The backend has no authentication or rate limiting configured.
+- Render deployment and production provider quotas still require maintainer verification.
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
-1. Fork the repository.
-2. Create a feature branch: git checkout -b feat/your-feature.
-3. Ensure typecheck and tests pass (
-pm run typecheck, pytest backend/tests -v).
-4. Commit your changes using conventional commit messages.
-5. Open a Pull Request.
-
----
+1. Create a feature branch from the current default branch.
+2. Keep changes focused and preserve Unicode input support.
+3. Do not commit `.env` files, secrets, generated builds, or local caches.
+4. Run the frontend typecheck/build and backend tests.
+5. Use a conventional commit prefix such as `feat:`, `fix:`, `test:`, `docs:`, or `chore:`.
+6. Open a pull request describing the behavior change and validation results.
 
 ## License
 
-This project is open source and available under the **MIT License**.
-
----
+No license file or explicit license declaration is currently included in this repository. Add a license before distributing the project under specific terms.
 
 ## Acknowledgements
 
-- **Stanford University**: IMDB Large Movie Review Dataset.
-- **FastAPI & Uvicorn**: Modern asynchronous web framework.
-- **TensorFlow & Keras**: Deep learning ecosystem.
-- **Vite & React Teams**: Modern frontend development toolchain.
+The project uses React, Vite, TailwindCSS, FastAPI, Uvicorn, Pydantic, TensorFlow, Keras, NumPy, scikit-learn, langdetect, deep-translator, Google GTX, and MyMemory. The stored model metadata identifies an IMDB-trained sentiment model; verify dataset licensing and attribution requirements before redistribution.
+
+## Support
+
+Issue tracking, discussions, and a live demo are not currently documented in this repository. Use the GitHub repository's issue tracker after the target repository is populated.
