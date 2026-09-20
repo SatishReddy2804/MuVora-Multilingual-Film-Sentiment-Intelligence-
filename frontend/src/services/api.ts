@@ -9,7 +9,13 @@ import {
   SupportedLanguagesResponse
 } from '../types';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '') || '/api';
+const configuredApiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+const normalizedApiBase = configuredApiBase && !/^https?:\/\//i.test(configuredApiBase)
+  ? `https://${configuredApiBase}`
+  : configuredApiBase;
+const API_BASE = normalizedApiBase
+  ? (normalizedApiBase.endsWith('/api') ? normalizedApiBase : `${normalizedApiBase}/api`)
+  : '/api';
 
 export async function analyzeReview(payload: AnalyzeRequest): Promise<AnalyzeResponse> {
   const response = await fetch(`${API_BASE}/analyze`, {

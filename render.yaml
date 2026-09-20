@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: muvora-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: PROJECT_NAME
+        value: MuVora
+      - key: DEBUG
+        value: "False"
+      - key: MODEL_PATH
+        value: /app/models/sentiment_bilstm.keras
+      - key: VOCAB_PATH
+        value: /app/models/vocab.json
+      - key: METADATA_PATH
+        value: /app/models/metadata.json
+      - key: CORS_ORIGINS
+        value: '["*"]'
+
+  - type: static
+    name: muvora-frontend
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: muvora-api
+          property: host
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
