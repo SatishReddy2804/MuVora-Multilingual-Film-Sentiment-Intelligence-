@@ -1,3 +1,21 @@
+# MuVora: Multilingual Cinema Review Intelligence & Translation Platform
+
+<div align="center">
+
+![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-2.15+-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
+![React 18](https://img.shields.io/badge/React-18.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.2-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5.1-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Vercel Ready](https://img.shields.io/badge/Vercel-SPA_Ready-000000?style=for-the-badge&logo=vercel&logoColor=white)
+
+**An intelligent, production-quality multilingual cinema review intelligence platform featuring Bidirectional LSTM neural classification, dynamic cinema aspect sentiment analysis, and Google-Translate-style multilingual translation with voice input and audio pronunciation.**
+
+</div>
+
+---
 # MuVora
 
 MuVora is a React and FastAPI application for multilingual movie-review analysis and translation.
