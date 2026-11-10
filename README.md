@@ -13,16 +13,11 @@
 
 **An intelligent, production-quality multilingual cinema review intelligence platform featuring Bidirectional LSTM neural classification, dynamic cinema aspect sentiment analysis, and Google-Translate-style multilingual translation with voice input and audio pronunciation.**
 
-</div>
-
----
-# MuVora
-
 MuVora is a React and FastAPI application for multilingual movie-review analysis and translation.
 
 It detects writing scripts and transliterated Indic-language input, evaluates review sentiment and quality, extracts cinema-related aspects, and provides translation workflows. The repository includes a trained BiLSTM model, a rule-based fallback predictor, browser speech input/output, and automated backend tests.
 
-Live demo: not currently configured.
+</div>
 
 ## Contents
 
